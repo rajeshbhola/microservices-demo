@@ -1,0 +1,22 @@
+server:
+  port: 8761 # Port where Eureka Server will run
+
+eureka:
+  client:
+    register-with-eureka: false # This is a standalone Eureka server, so it should not register itself with another server
+    fetch-registry: false # It doesn't need to fetch a registry since it's the server
+  server:
+    enable-self-preservation: false # This disables the self-preservation mode for testing purposes (in production, leave this enabled)
+  instance:
+    hostname: localhost
+
+spring:
+  application:
+    name: eureka-server
+
+# Display the Eureka dashboard
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
