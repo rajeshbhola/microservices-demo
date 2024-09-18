@@ -2,6 +2,7 @@ package com.rajesh.feign;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -21,4 +22,10 @@ public interface UserServiceFeignClient {
 
 	@GetMapping("/api/users/roles")
 	String getUserRoles(@RequestHeader("Authorization") String token);
+	
+	@GetMapping("/api/users/{id}")
+    Boolean isUserExists(@RequestHeader("Authorization") String token, @PathVariable("id") Long id);
+	
+	@GetMapping("/api/users/userid")
+	Long getUserId(@RequestHeader("Authorization") String token);
 }

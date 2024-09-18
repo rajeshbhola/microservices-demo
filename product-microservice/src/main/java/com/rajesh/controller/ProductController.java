@@ -6,11 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.rajesh.dto.ProductDTO;
 import com.rajesh.entity.Product;
 import com.rajesh.feign.UserServiceFeignClient;
 import com.rajesh.service.ProductService;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
@@ -21,22 +23,29 @@ public class ProductController {
 
 	@Autowired
 	private UserServiceFeignClient userClient;
-	
+
 	@Value("${role.seller}")
 	private String role_seller;
-	
+
 	@Value("${role.customer}")
 	private String role_customer;
 
 	@PostMapping("/add")
 	public ResponseEntity<String> addProduct(@RequestHeader("Authorization") String token,
-			@RequestBody Product product) {
+			@RequestBody ProductDTO productDto) {
+		// Validate the JWT token
 		Boolean isValid = userClient.validateToken(token);
 		if (isValid) {
+			// Get user roles from the token
 			String roles = userClient.getUserRoles(token);
 			if (roles.contains(role_seller)) {
-				productService.addProduct(product);
-				return ResponseEntity.ok("Product added successfully");
+				// Extract user ID from the token
+				Long userId = userClient.getUserId(token); // You need to implement getUserId in UserClient
+
+				// Create and save the product
+				Product createdProduct = productService.createProduct(productDto, userId);
+
+				return ResponseEntity.ok("Product added successfully with ID: " + createdProduct.getId());
 			} else {
 				return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to add products");
 			}
@@ -55,4 +64,39 @@ public class ProductController {
 		}
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
 	}
+
+	@GetMapping("/{id}")
+	public ResponseEntity<List<Product>> getProductsByUserId(@RequestHeader("Authorization") String token,
+	                                                          @PathVariable("id") Long id) {
+	    // Step 1: Validate the JWT Token
+	    Boolean isValid = userClient.validateToken(token);
+
+	    if (isValid) {
+	        // Step 2: Extract User ID from the token
+	        Long userId = userClient.getUserId(token);
+
+	        // Step 3: Call user service to verify if the user exists
+	        if (userId != null && userClient.isUserExists(token, userId)) {
+	            // Step 4: Retrieve the products linked to this user
+	            List<Product> products = productService.getProducts(userId);
+
+	            if (products.isEmpty()) {
+	                // Return NOT FOUND if no products exist for the user
+	                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+	            }
+
+	            // Return the list of products if found
+	            return ResponseEntity.ok(products);
+	        } else {
+	            // Return NOT FOUND if user does not exist
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+	        }
+	    }
+
+	    // Return UNAUTHORIZED status if token validation fails
+	    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+	}
+
+
+
 }

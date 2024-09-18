@@ -1,10 +1,15 @@
 package com.rajesh.controller;
 
+import java.util.HashMap;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -39,32 +44,50 @@ public class UserController {
 		this.authenticationService = authenticationService;
 	}
 
+	
 	@PostMapping("/register")
-	public ResponseEntity<User> register(@RequestBody RegisterDTO registerUserDto) {
-		User registeredUser = authenticationService.signup(registerUserDto);
+	public ResponseEntity<?> register(@RequestBody RegisterDTO registerUserDto) {
+	    // Use findByUsername or findByEmail to check if a user already exists
+	    Optional<User> existingUser = authenticationService.findByUsername(registerUserDto.getUsername());
+	    
+	    if (existingUser.isPresent()) {
+	        // Return a 409 Conflict response if the user already exists
+	        return ResponseEntity.status(HttpStatus.CONFLICT)
+	                .body("User with the same username already exists.");
+	    }
 
-		return ResponseEntity.ok(registeredUser);
+	    // Proceed with registration if the user doesn't exist
+	    User registeredUser = authenticationService.signup(registerUserDto);
+
+	    return ResponseEntity.ok(registeredUser);
 	}
 
+
+	
 	@PostMapping("/login")
 	public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginDTO loginUserDto) {
-		User authenticatedUser = authenticationService.authenticate(loginUserDto);
+	    // Authenticate the user (returns a custom User object)
+	    User authenticatedUser = authenticationService.authenticate(loginUserDto);
 
-		String jwtToken = jwtService.generateToken(authenticatedUser);
+	    // Assuming authenticatedUser can be cast or is equivalent to UserDetails
+	    UserDetails userDetails = (UserDetails) authenticatedUser;
 
-		LoginResponse loginResponse = new LoginResponse().setToken(jwtToken)
-				.setExpiresIn(jwtService.getExpirationTime());
+	    // Extract userId from authenticatedUser (assuming it has a getId() method)
+	    Long userId = authenticatedUser.getId();
 
-		return ResponseEntity.ok(loginResponse);
+	    // Generate JWT token with userId and other details
+	    String jwtToken = jwtService.generateToken(new HashMap<>(), userDetails, userId);
+
+	    // Create login response with token and expiration time
+	    LoginResponse loginResponse = new LoginResponse()
+	            .setToken(jwtToken)
+	            .setExpiresIn(jwtService.getExpirationTime());
+
+	    return ResponseEntity.ok(loginResponse);
 	}
 
-	/*
-	 * @PostMapping("/logout") public ResponseEntity<?>
-	 * logout(@RequestHeader("Authorization") String token) { if (token != null &&
-	 * token.startsWith("Bearer ")) { token = token.substring(7);
-	 * jwtBlacklistService.blacklistToken(token); } return
-	 * ResponseEntity.ok("Logged out successfully"); }
-	 */
+
+
 
 	@GetMapping("/validate")
 	public ResponseEntity<Boolean> validateToken(@RequestHeader("Authorization") String token) {
@@ -87,4 +110,18 @@ public class UserController {
 		User user = userService.getUserByUsername(username);
 		return ResponseEntity.ok(user.getRole());
 	}
+	
+	// Endpoint to check if a user exists by their ID
+    @GetMapping("/{id}")
+    public ResponseEntity<Boolean> isUserExists(@PathVariable("id") Long id) {
+        Boolean userExists = userService.isUserExists(id);
+        return ResponseEntity.ok(userExists);
+    }
+	
+	@GetMapping("/userid")
+	public ResponseEntity<Long> getUserId(@RequestHeader("Authorization") String token) {
+		long userid = jwtService.extractUserId(token.substring(7));
+		return ResponseEntity.ok(userid);
+	}
+	
 }

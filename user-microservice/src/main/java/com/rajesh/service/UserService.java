@@ -27,4 +27,11 @@ public class UserService {
 	public User getUserByUsername(String username) {
 		return userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
 	}
+	
+
+	// Method to check if a user exists by their ID
+    public Boolean isUserExists(Long id) {
+        return userRepository.existsById(id);
+    }
+    
 }

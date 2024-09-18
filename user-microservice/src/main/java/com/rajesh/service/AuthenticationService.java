@@ -12,6 +12,7 @@ import com.rajesh.repository.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AuthenticationService {
@@ -59,4 +60,12 @@ public class AuthenticationService {
 
 		return users;
 	}
+
+	// Method to find user by username
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+	
+
+	
 }

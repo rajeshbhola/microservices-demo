@@ -27,8 +27,27 @@ public class JwtService {
 	@Value("${security.jwt.expiration-time}")
 	private long jwtExpiration;
 
+	public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails, Long userId) {
+		// Add userId to the claims
+		extraClaims.put("id", userId);
+
+		// Extract the single role from authorities
+		String role = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst()
+				.orElse("CUSTOMER"); // Default role if no role is present
+
+		// Add the role to the claims
+		extraClaims.put("role", role);
+
+		return buildToken(extraClaims, userDetails, jwtExpiration);
+	}
+
 	public String extractUsername(String token) {
 		return extractClaim(token, Claims::getSubject);
+	}
+
+	public Long extractUserId(String token) {
+		// Extract the userId from the token claims
+		return Long.parseLong(extractAllClaims(token).get("id").toString());
 	}
 
 	public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -36,13 +55,11 @@ public class JwtService {
 		return claimsResolver.apply(claims);
 	}
 
-	public String generateToken(UserDetails userDetails) {
-		return generateToken(new HashMap<>(), userDetails);
-	}
-
-	public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-		return buildToken(extraClaims, userDetails, jwtExpiration);
-	}
+	/*
+	 * public String generateToken(Map<String, Object> extraClaims, UserDetails
+	 * userDetails, Long id) { return buildToken(extraClaims, userDetails,
+	 * jwtExpiration); }
+	 */
 
 	public long getExpirationTime() {
 		return jwtExpiration;
@@ -51,7 +68,7 @@ public class JwtService {
 	private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
 		// Extract the single role from authorities
 		String role = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst()
-				.orElse("ROLE_USER"); // Default role if no role is present
+				.orElse("CUSTOMER"); // Default role if no role is present
 
 		// Add the role to the claims
 		extraClaims.put("role", role);
