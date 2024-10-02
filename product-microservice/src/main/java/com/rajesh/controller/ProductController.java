@@ -11,10 +11,14 @@ import com.rajesh.entity.Product;
 import com.rajesh.feign.UserServiceFeignClient;
 import com.rajesh.service.ProductService;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping("/api/products")
 public class ProductController {
 
@@ -31,27 +35,33 @@ public class ProductController {
 	private String role_customer;
 
 	@PostMapping("/add")
-	public ResponseEntity<String> addProduct(@RequestHeader("Authorization") String token,
-			@RequestBody ProductDTO productDto) {
-		// Validate the JWT token
-		Boolean isValid = userClient.validateToken(token);
-		if (isValid) {
-			// Get user roles from the token
-			String roles = userClient.getUserRoles(token);
-			if (roles.contains(role_seller)) {
-				// Extract user ID from the token
-				Long userId = userClient.getUserId(token); // You need to implement getUserId in UserClient
+	public ResponseEntity<Map<String, String>> addProduct(@RequestHeader("Authorization") String token,
+	        @RequestBody ProductDTO productDto) {
+	    // Validate the JWT token
+	    Boolean isValid = userClient.validateToken(token);
+	    if (isValid) {
+	        // Get user roles from the token
+	        String roles = userClient.getUserRoles(token);
+	        if (roles.contains(role_seller)) {
+	            // Extract user ID from the token
+	            Long userId = userClient.getUserId(token); // You need to implement getUserId in UserClient
 
-				// Create and save the product
-				Product createdProduct = productService.createProduct(productDto, userId);
+	            // Create and save the product
+	            Product createdProduct = productService.createProduct(productDto, userId);
 
-				return ResponseEntity.ok("Product added successfully with ID: " + createdProduct.getId());
-			} else {
-				return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not authorized to add products");
-			}
-		}
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Token");
+	            // Create a response map
+	            Map<String, String> response = new HashMap<>();
+	            response.put("message", "Product added successfully with ID: " + createdProduct.getId());
+	            return ResponseEntity.ok(response);
+	        } else {
+	            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+	                    .body(Collections.singletonMap("error", "You are not authorized to add products"));
+	        }
+	    }
+	    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+	            .body(Collections.singletonMap("error", "Invalid Token"));
 	}
+
 
 	@GetMapping("/view")
 	public ResponseEntity<List<Product>> viewProducts(@RequestHeader("Authorization") String token) {

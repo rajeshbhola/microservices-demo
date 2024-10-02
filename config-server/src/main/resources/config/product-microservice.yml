@@ -13,5 +13,5 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka/
 role:
-  seller: SELLER
-  customer: CUSTOMER
+  seller: seller
+  customer: customer
